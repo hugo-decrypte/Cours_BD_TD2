@@ -98,10 +98,8 @@ db["produits"].insertOne(
 11. les recettes associées au produit 1 :
 ```shell
 db.produits.aggregate([
-  // 1. Filtrer le document Produit par 'numero'
   { $match: { numero: 1 } },
   
-  // 2. Joindre les documents de la collection 'recettes'
   {
     $lookup: {
       from: "recettes",      // La collection à joindre (où se trouvent les détails des recettes)
@@ -111,7 +109,6 @@ db.produits.aggregate([
     }
   },
   
-  // 3. Projeter pour afficher uniquement les recettes et exclure l'ID du produit (facultatif)
   {
     $project: {
       _id: 0,
