@@ -18,7 +18,9 @@ db["produits"].countDocuments()
 ```
 
 3. lister les produits en les triant par numero décroissant
-
+```shell
+   db.produits.find().sort({ numero: -1 });
+```
 
 4. Le produit de libellé "Margherita"
 ```shell
@@ -26,6 +28,9 @@ db["produits"].find({ libelle: "Margherita"})
 ```
 
 5. produits de la catégorie "Boissons"
+```shell
+   db.produits.find({ categorie: "Boissons" });
+```
 
 
 6. liste des produits, afficher categorie, numero, libelle
@@ -42,10 +47,26 @@ db["produits"].find(
 )
 ```
 
-8. produits avec un tarif < 8.0
 
+8. produits avec un tarif < 8.0
+```shell
+db.produits.find({
+  "tarifs.tarif": { $lt: 8.0 }
+});
+```
 
 9. produits avec un tarif grande taille < 8.0
+```shell
+  db.produits.find({
+  tarifs: {
+    $elemMatch: {
+      taille: "grande",
+      tarif: { $lt: 8.0 }
+    }
+  }
+});
+
+```
 
 
 10. insérer un nouveau produit
