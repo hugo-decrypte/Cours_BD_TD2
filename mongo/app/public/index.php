@@ -1,78 +1,63 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: canals5
- * Date: 28/10/2019
- * Time: 16:16
- */
-
-use MongoDB\Client;
 require_once __DIR__ . "/../vendor/autoload.php";
+$db = (new MongoDB\Client("mongodb://mongo"))->chopizza;
 
-$c = new Client("mongodb://mongo");
-echo "connected to mongo <br>";
-$db = $c->chopizza;
-$produits = $db->produits;
-$recettes = $db->recettes;
-
-
-//Requêtes en PHP
-
-//1. afficher la liste des produits: numero, categorie, libelle
-
-$cursor = $produits->find(
-    [],
-    ['projection' => ['_id' => 0, 'numero' => 1, 'categorie' => 1, 'libelle' => 1]]
-);
-
-foreach ($cursor as $p) {
-    echo $p['numero'] . " - " . $p['categorie'] . " - " . $p['libelle'] . "<br>";
+// --- TRAITEMENT DU FORMULAIRE D'AJOUT ---
+if (isset($_POST['ajouter'])) {
+    $db->produits->insertOne([
+        'numero'      => (int)$_POST['numero'],
+        'libelle'     => $_POST['libelle'],
+        'categorie'   => $_POST['categorie'],
+        'description' => $_POST['description'],
+        'tarifs'      => [
+            ['taille' => $_POST['taille'], 'tarif' => (float)$_POST['prix']]
+        ],
+        'recettes'    => []
+    ]);
+    echo "<b>Produit ajouté avec succès !</b><br><br>";
 }
 
+// --- NAVIGATION PAR CATÉGORIE ---
+echo "<h2>Catalogue par catégorie</h2>";
+$categories = $db->produits->distinct("categorie");
 
-//2. afficher le produit numéro 6, préciser : libellé, catégorie, description, tarifs
+foreach ($categories as $cat) {
+    echo "[ <a href='?cat=$cat'>$cat</a> ] ";
+}
+echo "<br><br>";
 
-
-//3. liste des produits dont le tarif en taille normale est <= 3.0
-
-$cursor = $produits->find([
-    'tarifs' => [
-        '$elemMatch' => [
-            'taille' => 'normale',
-            'tarif' => ['$lte' => 3.0]
-        ]
-    ]
-]);
-
-foreach ($cursor as $p) {
-    echo $p['numero'] . "-" . $p['libelle'] . "<br>";
+if (isset($_GET['cat'])) {
+    $cursor = $db->produits->find(['categorie' => $_GET['cat']]);
+    foreach ($cursor as $p) {
+        echo "<b>N°" . $p['numero'] . " - " . $p['libelle'] . "</b><br>";
+        echo "<i>" . $p['description'] . "</i><br>";
+        echo "Tarifs : ";
+        foreach ($p['tarifs'] as $t) {
+            echo " [ " . $t['taille'] . " : " . $t['tarif'] . "€ ] ";
+        }
+        echo "<hr>";
+    }
 }
 
-//4. liste des produits associés à 4 recettes
+// --- FORMULAIRE D'AJOUT (VIA ECHO) ---
+echo "<h2>Ajouter un nouveau produit</h2>";
+echo "<form method='POST'>";
+echo "Numéro : <input type='number' name='numero' required><br>";
+echo "Libellé : <input type='text' name='libelle' required><br>";
+echo "Description : <input type='text' name='description'><br>";
 
-
-//5. afficher le produit n°6, compléter en listant les recettes associées (nom et difficulté)
-$prod = $produits->findOne(['numero' => 6]);
-// tableau d'objectid
-$ids = $prod['recettes'];
-
-$cursor = $recettes->find(
-    ['_id' => ['$in' => $ids]],
-    ['projection' => ['_id' => 0, 'nom' => 1, 'difficulte' => 1]]
-);
-
-echo "<h3>" . $prod['libelle'] . "</h3>";
-echo "<p>Catégorie : " . $prod['categorie'] . "</p>";
-echo "<p>Description : " . $prod['description'] . "</p>";
-
-echo "<h3>recettes :</h3>";
-foreach ($cursor as $r) {
-    echo "- " . $r['nom'] . " (" . $r['difficulte'] . ")<br>";
+echo "Catégorie : <select name='categorie'>";
+foreach ($categories as $cat) {
+    echo "<option value='$cat'>$cat</option>";
 }
+echo "</select><br>";
 
+echo "Taille : <select name='taille'>";
+echo "<option value='normale'>Normale</option>";
+echo "<option value='grande'>Grande</option>";
+echo "<option value='junior'>Junior</option>";
+echo "</select> ";
 
-//6. créer une fonction qui reçoit en paramètre un numéro de produit et une taille et retourne un
-// tableau contenant les données descriptives de ce produit : numéro, libellé, catégorie, taille,
-// tarif ; utiliser cette fonction et afficher le résultat en json.
-
-
+echo "Prix : <input type='number' step='0.1' name='prix' required><br><br>";
+echo "<input type='submit' name='ajouter' value='Enregistrer le produit'>";
+echo "</form>";
